@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
 
 function ManagementSetting({
   hourlyRate,
@@ -15,6 +16,14 @@ function ManagementSetting({
   const [isUserRegisterOpen, setIsUserRegisterOpen] = useState(false);
   const [isQrMenuOpen, setIsQrMenuOpen] = useState(false); // QRコードメニューの状態
   const [qrNumber, setQrNumber] = useState("");
+  const [employeeId, setEmployeeId] = useState([]);
+
+  useEffect(() => {
+    const storedEmployeeIds = localStorage.getItem("employeeIds");
+    if (storedEmployeeIds) {
+      setEmployeeId(JSON.parse(storedEmployeeIds));
+    }
+  }, []);
 
   const handleHourlyRateChange = async (e) => {
     e.preventDefault();
@@ -26,7 +35,7 @@ function ManagementSetting({
     }
     try {
       const response = await axios.put(
-        "http://localhost:5220/api/Registration/Hourly",
+        "https://mainformwebapp.azurewebsites.net/api/Registration/Hourly",
         { Hourly: hourlyRate }
       );
       alert(response.data.Hourly);
@@ -40,20 +49,39 @@ function ManagementSetting({
     e.preventDefault();
     try {
       const response = await axios.post(
-        `http://localhost:5220/api/Registration/employeeRegister/${Id}`,
+        `https://mainformwebapp.azurewebsites.net/api/Registration/employeeRegister/${Id}`,
         { Name: userName }
       );
       alert(`${userName}さんを追加しました`);
+      const updatedEmployeeId = [...employeeId, response.data.detail];
+      localStorage.setItem("employeeIds", JSON.stringify(updatedEmployeeId));
+      setEmployeeId(updatedEmployeeId);
       setUserName("");
-      console.log(response.data);
       window.location.reload();
+      console.log(response.data.detail);
     } catch (error) {
       console.error(error);
     }
   };
 
   const handleQrgenerater = () => {
-    navigate(`/QRcode/${qrNumber}`);
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+
+    const decoded = jwtDecode(token);
+    const userIdFromToken = parseInt(decoded.sub, 10);
+
+    console.log("User ID from token:", userIdFromToken, "URL ID:", Id);
+
+    if (
+      parseInt(userIdFromToken) === parseInt(Id) &&
+      employeeId.includes(parseInt(qrNumber))
+    ) {
+      navigate(`/QRcode/${qrNumber}`);
+    } else {
+      console.log(employeeId, qrNumber);
+      alert("登録されているIDではありません");
+    }
   };
 
   return (
