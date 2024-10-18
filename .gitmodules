@@ -1,3 +1,3 @@
-[submodule "frontend/mainForm"]
-    path = frontend/mainForm
+[submodule "mainForm"]
+    path = mainForm
     url = https://github.com/ibu0125/mainForm
